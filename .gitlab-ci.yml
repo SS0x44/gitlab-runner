@@ -1,1 +1,68 @@
+image: amazon/awscli:latest
 
+tags:
+  - app_runner_03
+  - app_runner_02
+  - app_runner_01
+
+variables:
+  # 🔐 These should be securely defined in GitLab CI/CD → Settings → Variables
+  RUNNER_TOKEN_01: ${RUNNER_TOKEN_01}
+  RUNNER_TOKEN_02: ${RUNNER_TOKEN_02}
+  RUNNER_TOKEN_03: ${RUNNER_TOKEN_03}
+
+  ACCOUNT_ID: "123456789012"
+  REGION: "us-east-1"
+  TERRAFORM_VERSION: "1.13.3"
+  TERRAGRUNT_VERSION: "0.88.1"
+  MVN_VERSION: "3.9.6"
+  JAVA_VERSION: "java-17-amazon-corretto"
+  GITLAB_URL: "https://gitlab.com/"
+
+  ACCOUNT_TYPE:
+    description: "Select account type: 'non-prod' or 'prod'"
+    value: "non-prod"
+    options:
+      - non-prod
+      - prod
+
+  ENVIRONMENT:
+    description: "Select environment: 'dev', 'qa', 'ppe', 'prd'"
+    value: "dev"
+    options:
+      - dev
+      - qa
+      - ppe
+      - prd
+
+  NAMESPACE:
+    description: "Select namespace: 'blue' or 'green'"
+    value: "blue"
+    options:
+      - blue
+      - green
+
+  TG_PATH: "terragrunt/$ACCOUNT_TYPE/$REGION/$ENVIRONMENT/$NAMESPACE/$CI_PROJECT_NAME"
+
+stages:
+  - plan
+  - apply
+
+tg_plan:
+  stage: plan
+  script:
+    - echo "📋 Running Terragrunt plan for path: $TG_PATH"
+    - cd "$TG_PATH"
+    - terragrunt run-all plan --terragrunt-non-interactive
+  only:
+    - main
+
+tg_apply:
+  stage: apply
+  script:
+    - echo "🚀 Applying infrastructure for path: $TG_PATH"
+    - cd "$TG_PATH"
+    - terragrunt run-all apply --terragrunt-non-interactive
+  only:
+    - main
+  when: manual
