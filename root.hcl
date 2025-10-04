@@ -2,23 +2,26 @@ locals {
   # Application-specific identifiers (can be overridden per module)
   app_id         = ""
   app_prefix     = ""
-
+  global_tags    {
+       app-name       = ""
+       cost-centre    = ""
+       resource-owner = ""
+       managedByTeam  = ""
+  }
   # Load shared configuration values from parent folders, with fallback to empty map if missing
-  account_vars   = try(read_terragrunt_config(find_in_parent_folders("account.hcl")).locals, {})
-  region_vars    = try(read_terragrunt_config(find_in_parent_folders("region.hcl")).locals, {})
-  env_vars       = try(read_terragrunt_config(find_in_parent_folders("env.hcl")).locals, {})
-  namespace_vars = try(read_terragrunt_config(find_in_parent_folders("namespace.hcl")).locals, {})
-
+  account_vars   = try(read_terragrunt_config(find_in_parent_folders("account.hcl")).locals)
+  region_vars    = try(read_terragrunt_config(find_in_parent_folders("region.hcl")).locals)
+  env_vars       = try(read_terragrunt_config(find_in_parent_folders("env.hcl")).locals)
+  namespace_vars = try(read_terragrunt_config(find_in_parent_folders("namespace.hcl")).locals)
   # Extract specific values from loaded configs, with fallback defaults
-  account_type   = try(local.account_vars.account_type, "")
-  account_id     = try(local.account_vars.aws_account_id, "")
-  region_short   = try(local.region_vars.region_short, "")
-  region         = try(local.region_vars.region, "")
-  env_short      = try(local.env_vars.env_short, "")
-  env_tags       = try(local.env_vars.env_tags, {})
-  namespace      = try(local.namespace_vars.namespace, "")
+  account_type   = try(local.account_vars.account_type)
+  account_id     = try(local.account_vars.aws_account_id)
+  region_short   = try(local.region_vars.region_short)
+  region         = try(local.region_vars.region)
+  env_short      = try(local.env_vars.env_short)
+  common_tags    = try(merge(local.env_vars.env_tags,local.global_tags))
+  namespace      = try(local.namespace_vars.namespace)
 }
-
 # Dynamically generate the AWS provider block with region and account restrictions
 generate "provider" {
   path      = "provider.tf"
@@ -30,7 +33,6 @@ provider "aws" {
 }
 EOF
 }
-
 # Configure remote state storage in S3 for Terraform state locking and consistency
 remote_state {
   backend = "s3"
@@ -46,7 +48,6 @@ remote_state {
     if_exists = "overwrite_terragrunt"
   }
 }
-
 # Merge all shared configuration inputs into one unified input map for Terraform modules
 inputs = merge(
   local.account_vars,
